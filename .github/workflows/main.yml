@@ -1,0 +1,63 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+env:
+  DJANGO_SETTINGS_MODULE: "brvjeoCloud.settings.local"
+  DATABASE_URL: "sqlite:///"
+  REDIS_URL: "redis://"
+  ALLOWED_HOSTS: ".example.org"
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      secret_key: $
+    steps:
+      - uses: actions/checkout@v4
+      - id: setup
+        uses: ./.github/actions/setup
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: uvx ruff check .
+        env:
+          SECRET_KEY: $
+
+  migrations-check:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: uv run python manage.py makemigrations --check --dry-run
+        env:
+          SECRET_KEY: $
+
+  system-check:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: uv run python manage.py check
+        env:
+          SECRET_KEY: $
+
+  tests:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: uv run python manage.py test
+        env:
+          SECRET_KEY: $
+          DJANGO_SETTINGS_MODULE: "brvjeoCloud.settings.test"
