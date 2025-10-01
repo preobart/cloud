@@ -3,7 +3,9 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.http import HttpResponse
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 
+from rest_framework.views import APIView
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -130,3 +132,24 @@ class FolderViewSet(viewsets.ModelViewSet):
         files = File.objects.filter(owner=request.user, folder=folder, deleted_at_isnull=True)
         serializer = FileSerializer(files, many=True, context={'request': request})
         return Response(serializer.data)
+
+
+class PublicSharedFileView(APIView):
+    def get(self, request, token):
+        shared_link = get_object_or_404(SharedLink, token=token)
+        if shared_link.expires_at and timezone.now() > shared_link.expires_at:
+            return Response({'error': 'Срок действия ссылки истек'}, status=status.HTTP_404_NOT_FOUND)
+        if shared_link.max_downloads and shared_link.download_count >= shared_link.max_downloads:
+            return Response({'error': 'Лимит скачивания файла исчерпан'})
+        
+        file_obj = shared_link.file
+
+        shared_link.download_count += 1
+        shared_link.save(update_fields=['download_count'])
+
+        internal_path = '/protected-media/' + file_obj.path.lstrip('/')
+        response = HttpResponse()
+        response['Content-Type'] = file_obj.mime_type or 'application/octet-stream'
+        response['Content-Disposition'] = f'attachment; filename="{file_obj.name}"'
+        response['X-Accel-Redirect'] = internal_path
+        return response
