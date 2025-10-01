@@ -3,7 +3,7 @@
 from .models import File
 
 
-class FileSerializers(serializers.ModelSerializer):
+class FileSerializer(serializers.ModelSerializer):
     preview_url = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
 

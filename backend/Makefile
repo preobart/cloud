@@ -5,11 +5,15 @@ SERVICE := app
 
 .PHONY: clean up down restart build logs shell manage migrate \
         makemigrations createsuperuser check test test_reset \
-		update_dependencies
+		update_dependencies clean_migrations
 
 clean:
 	@find . -name "*.pyc" -exec rm -rf {} \;
 	@find . -name "__pycache__" -delete
+
+clean_migrations:
+	find . -path '*/migrations/*.py' -not -name '__init__.py' -delete
+	find . -path '*/migrations/*.pyc' -delete
 
 up:
 	docker compose up --build -d

@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'django_extensions',
     'corsheaders',
+    'brvjeoCloud.filesystem',
 ]
 
 MIDDLEWARE = [
@@ -249,3 +250,11 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = "DENY"
 
+
+MAX_FILE_UPLOAD_MB = 50
+ALLOWED_FILE_MIME_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "video/mp4",
+    "application/pdf",
+]

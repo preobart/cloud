@@ -27,7 +27,7 @@ class File(models.Model):
     name = models.CharField(max_length=255)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="files")
     folder = models.ForeignKey(Folder, null=True, blank=True, on_delete=models.SET_NULL, related_name="files")
-    file = models.FieldFile(upload_to="uploads/files/")
+    file = models.FileField(upload_to="uploads/files/")
     size = models.BigIntegerField()
     mime_type = models.CharField(max_length=100)
     uploaded_at = models.DateTimeField(auto_now_add=True)
