@@ -128,3 +128,4 @@ lines-after-imports = 2
 "**/*test*.py" = ["E402", "F403", "F405", "S", "N802"]
 "**/{settings}/*" = ["E402", "F403", "F405"]
 "**/migrations/*" = ["RUF", "I"]
+"**/serializers.py" = ["RUF012"]

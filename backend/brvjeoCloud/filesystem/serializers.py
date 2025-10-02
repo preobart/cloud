@@ -1,6 +1,6 @@
 ﻿from rest_framework import serializers
 
-from .models import File
+from .models import File, Folder, SharedLink
 
 
 class FileSerializer(serializers.ModelSerializer):
@@ -9,10 +9,7 @@ class FileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = File
-        fields = [ 
-            "id", "name", "size", "mime_type",
-            "uploaded_at", "preview_url", "download_url"
-        ]
+        fields = [ "id", "name", "size", "mime_type", "uploaded_at", "preview_url", "download_url" ]
     
     def get_preview_url(self, obj):
         request = self.context.get("request")
@@ -23,3 +20,21 @@ class FileSerializer(serializers.ModelSerializer):
     def get_download_url(self, obj):
         request = self.context.get("request")
         return request.build_absolute_uri(f"/api/files/{obj.id}/download/")
+    
+
+class SharedLinkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SharedLink
+        fields = ['id', 'token', 'created_at', 'expires_at', 'max_downloads', 'downloads_count']
+
+
+class FolderSerializer(serializers.ModelSerializer):
+    files = FileSerializer(many=True, read_only=True)
+    children = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Folder
+        fields = [ 'id', 'name', 'created_at', 'files', 'children']
+
+    def get_children(self, obj):
+        return FolderSerializer(obj.children.all(), many=True, conext=self.context).data
