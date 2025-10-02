@@ -2,16 +2,14 @@
 
 from rest_framework.routers import DefaultRouter
 
-from . import views
-from .views import FileViewSet
+from .views import FileViewSet, FolderViewSet, PublicSharedFileView
 
 
 router = DefaultRouter()
 router.register(r"files", FileViewSet, basename="file")
+router.register(r"folders", FolderViewSet, basename="folder")
 
 urlpatterns = [
-    path("api/", include([
-        router.urls,
-        path("<str:token>/", views.PublicSharedFileView.as_view(), name="public-file"),
-    ])),
+    path("api/", include(router.urls)),
+    path("p/<str:token>/", PublicSharedFileView.as_view(), name="public-file"),
 ]

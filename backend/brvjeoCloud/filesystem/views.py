@@ -10,7 +10,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import File, Folder
+from .models import File, Folder, SharedLink
 from .serializers import FileSerializer, FolderSerializer
 
 class FileViewSet(viewsets.ModelViewSet):
