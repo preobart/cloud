@@ -129,3 +129,5 @@ lines-after-imports = 2
 "**/{settings}/*" = ["E402", "F403", "F405"]
 "**/migrations/*" = ["RUF", "I"]
 "**/serializers.py" = ["RUF012"]
+"**/models.py" = ["RUF012"]
+"**/views.py" = ["RUF012"]

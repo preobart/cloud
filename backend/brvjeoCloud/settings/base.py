@@ -58,6 +58,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.gzip.GZipMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django_permissions_policy.PermissionsPolicyMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -185,15 +186,66 @@ PERMISSIONS_POLICY = {
     "xr-spatial-tracking": [],
 }
 
+# SSO via Cookies
+BASE_DOMAIN = env("BASE_DOMAIN")
+
+# Define the domain for which the session and CSRF cookies are valid.
+SESSION_COOKIE_DOMAIN = BASE_DOMAIN
+CSRF_COOKIE_DOMAIN = BASE_DOMAIN
+
+# Lax allows the cookie to be sent on safe cross-site requests
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+
+# Stores the CSRF token in a cookie (not in sessions) and allows frontend JavaScript to read it for AJAX requests.
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_NAME = "csrftoken"
+CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
+CSRF_COOKIE_HTTPONLY = False
+CSRF_TRUSTED_ORIGINS = []
+
+# Ensures the cookie is sent only over HTTPS.
+# Specifies the domains allowed to submit requests with a valid CSRF token.
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+
+# Stores sessions in Redis cache using the default cache, with a one-week expiration.
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env("REDIS_URL", "redis://127.0.0.1:6379/0"),
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        "TIMEOUT": 60 * 60 * 24 * 7,
+    },
+}
+
+# Specifies which origins are allowed to make cross-origin requests.
+# Allows credentials (cookies, auth headers) to be included in CORS requests.
+CORS_ALLOWED_ORIGINS = []
+CORS_ALLOW_CREDENTIALS = True
+
+# Enables HTTPS with HSTS (including subdomains and preload), redirects HTTP to HTTPS,
+# and sets security headers to prevent MIME sniffing, XSS, and clickjacking.
+SECURE_HSTS_SECONDS = 0
+SECURE_HSTS_PRELOAD = False
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_PROXY_SSL_HEADER = None
+SECURE_SSL_REDIRECT = False
+SECURE_CONTENT_TYPE_NOSNIFF = False
+SECURE_BROWSER_XSS_FILTER = False
+X_FRAME_OPTIONS = "DENY"
+
+
 # Celery
-# Recommended settings for reliability: https://gist.github.com/fjsj/da41321ac96cf28a96235cb20e7236f6
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TASK_ACKS_LATE = True
 
 CELERY_TIMEZONE = TIME_ZONE
-CELERY_ENABLE_UTC=False
+CELERY_ENABLE_UTC = False
 
 CELERY_BROKER_TRANSPORT_OPTIONS = {"confirm_publish": True, "confirm_timeout": 5.0}
 CELERY_BROKER_POOL_LIMIT = int(env("CELERY_BROKER_POOL_LIMIT", 1))
@@ -212,43 +264,6 @@ CELERY_WORKER_SEND_TASK_EVENTS = env("CELERY_WORKER_SEND_TASK_EVENTS", "true")
 CELERY_EVENT_QUEUE_EXPIRES = float(env("CELERY_EVENT_QUEUE_EXPIRES", 60.0))
 CELERY_EVENT_QUEUE_TTL = float(env("CELERY_EVENT_QUEUE_TTL", 5.0))
 
-# SSO via Cookies
-BASE_DOMAIN = env("BASE_DOMAIN")
-
-# Lax allows the cookie to be sent on safe cross-site requests
-SESSION_COOKIE_SAMESITE = "Lax" 
-CSRF_COOKIE_SAMESITE = "Lax"
-
-# Define the domain for which the session and CSRF cookies are valid.
-SESSION_COOKIE_DOMAIN = BASE_DOMAIN
-CSRF_COOKIE_DOMAIN = BASE_DOMAIN
-
-# Stores the CSRF token in a cookie (not in sessions) and allows frontend JavaScript to read it for AJAX requests.
-CSRF_USE_SESSIONS = False
-CSRF_COOKIE_NAME = "csrftoken"
-CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
-CSRF_COOKIE_HTTPONLY = False
-
-# Ensures the cookie is sent only over HTTPS.
-# Specifies the domains allowed to submit requests with a valid CSRF token.
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-CSRF_TRUSTED_ORIGINS = []
-
-# Specifies which origins are allowed to make cross-origin requests.
-# Allows credentials (cookies, auth headers) to be included in CORS requests.
-CORS_ALLOWED_ORIGINS = []
-CORS_ALLOW_CREDENTIALS = True
-
-# Enables HTTPS with HSTS (including subdomains and preload), redirects HTTP to HTTPS,
-# and sets security headers to prevent MIME sniffing, XSS, and clickjacking.
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_PRELOAD = True
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_SSL_REDIRECT = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_BROWSER_XSS_FILTER = True
-X_FRAME_OPTIONS = "DENY"
 
 
 MAX_FILE_UPLOAD_MB = 50

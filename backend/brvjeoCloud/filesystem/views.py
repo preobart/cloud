@@ -1,21 +1,26 @@
+from urllib.parse import quote
+
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.http import HttpResponse
-from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
-from rest_framework.views import APIView
-from rest_framework import viewsets, status
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import File, Folder, SharedLink
+from .permissions import IsOwner
 from .serializers import FileSerializer, FolderSerializer
+
 
 class FileViewSet(viewsets.ModelViewSet):
     queryset = File.objects.all()
     serializer_class = FileSerializer
+    permission_classes = [IsOwner]
 
     def get_queryset(self):
         return File.objects.filter(owner=self.request.user, deleted_at__isnull=True)
@@ -49,7 +54,7 @@ class FileViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(file_obj, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
-    @action(detail=True):
+    @action(detail=True)
     def download(self, request, pk=None):
        file_obj = self.get_object() 
        internal_path = '/protected-media/' + quote(file_obj.path.lstrip('/'))
@@ -63,7 +68,7 @@ class FileViewSet(viewsets.ModelViewSet):
     def preview(self, request, pk=None):
         file_obj = self.get_object()
         if not file_obj.preview_image:
-            return Responce({'error': 'Не удалось загрузить превью'})
+            return Response({'error': 'Не удалось загрузить превью'})
         
         internal_path = '/protected-media/' + quote(file_obj.preview_image.lstrip('/'))
         response = HttpResponse()
@@ -77,7 +82,7 @@ class FileViewSet(viewsets.ModelViewSet):
         folder_id = request.data.get('folder_id')
 
         if not folder_id:
-            return Response({'message': f'Не указан folder_id'})
+            return Response({'message': 'Не указан folder_id'})
         
         file_obj.folder_id = folder_id
         file_obj.save()
@@ -117,6 +122,7 @@ class FileViewSet(viewsets.ModelViewSet):
 class FolderViewSet(viewsets.ModelViewSet):
     queryset = Folder.objects.all()
     serializer_class = FolderSerializer
+    permission_classes = [IsOwner]
 
     def get_queryset(self):
         return Folder.objects.filter(owner=self.request.user)

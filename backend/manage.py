@@ -18,7 +18,7 @@ if __name__ == "__main__":
                 "Ignoring config('DJANGO_SETTINGS_MODULE') because it's test. "
                 "Using 'brvjeoCloud.settings.test'"
             )
-        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "brvjeoCloud.settings.test")
+        os.environ["DJANGO_SETTINGS_MODULE"] = "brvjeoCloud.settings.test"
     else:
         if settings_module is None:
             print(
