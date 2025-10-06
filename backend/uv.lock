@@ -44,6 +44,7 @@ dependencies = [
     { name = "django-cors-headers" },
     { name = "django-extensions" },
     { name = "django-permissions-policy" },
+    { name = "django-redis" },
     { name = "djangorestframework" },
     { name = "gunicorn" },
     { name = "pillow" },
@@ -65,6 +66,7 @@ requires-dist = [
     { name = "django-cors-headers", specifier = ">=4.8.0" },
     { name = "django-extensions", specifier = ">=4.1" },
     { name = "django-permissions-policy", specifier = ">=4.26.0" },
+    { name = "django-redis", specifier = ">=6.0.0" },
     { name = "djangorestframework", specifier = ">=3.16.0" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "pillow", specifier = ">=11.3.0" },
@@ -344,6 +346,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/57/73/9fa46c7522506bab424f9bb8f8274874958d759a762917060cea35e859f2/django_permissions_policy-4.27.0.tar.gz", hash = "sha256:c524aa01196d524dbbad74dbd6dedfe4af48a49aa5c8cf8dd3af148f70240903", size = 10695, upload-time = "2025-09-08T22:50:04.036Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/37/c8/2f6ef1d5c7e202215a40f563c8213edbe3d3cf8822c0ad993a8951e0e261/django_permissions_policy-4.27.0-py3-none-any.whl", hash = "sha256:2e2462f097f6ab1c6074a5c18870a5eb2e7f0622a21ecada848feddac1218817", size = 6772, upload-time = "2025-09-08T22:50:02.871Z" },
+]
+
+[[package]]
+name = "django-redis"
+version = "6.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "redis" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/08/53/dbcfa1e528e0d6c39947092625b2c89274b5d88f14d357cee53c4d6dbbd4/django_redis-6.0.0.tar.gz", hash = "sha256:2d9cb12a20424a4c4dde082c6122f486628bae2d9c2bee4c0126a4de7fda00dd", size = 56904, upload-time = "2025-06-17T18:15:46.376Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7e/79/055dfcc508cfe9f439d9f453741188d633efa9eab90fc78a67b0ab50b137/django_redis-6.0.0-py3-none-any.whl", hash = "sha256:20bf0063a8abee567eb5f77f375143c32810c8700c0674ced34737f8de4e36c0", size = 33687, upload-time = "2025-06-17T18:15:34.165Z" },
 ]
 
 [[package]]

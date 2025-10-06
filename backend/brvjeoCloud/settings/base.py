@@ -215,10 +215,12 @@ SESSION_CACHE_ALIAS = "default"
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": env("REDIS_URL", "redis://127.0.0.1:6379/0"),
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-        "TIMEOUT": 60 * 60 * 24 * 7,
-    },
+        "LOCATION": env("REDIS_URL", "redis://result:6379/0"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "TIMEOUT": 60*60*24*7,
+    }
 }
 
 # Specifies which origins are allowed to make cross-origin requests.
