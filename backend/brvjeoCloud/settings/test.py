@@ -49,3 +49,11 @@ CACHES = {
         "LOCATION": "unique-test",
     }
 }
+
+ALLOWED_FILE_MIME_TYPE = [
+    "image/png",
+    "image/jpeg",
+    "text/plain",
+    "application/pdf",
+]
+MAX_FILE_UPLOAD_MB = 50

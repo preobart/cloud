@@ -37,4 +37,4 @@ class FolderSerializer(serializers.ModelSerializer):
         fields = [ 'id', 'name', 'created_at', 'files', 'children']
 
     def get_children(self, obj):
-        return FolderSerializer(obj.children.all(), many=True, conext=self.context).data
+        return FolderSerializer(obj.children.all(), many=True, context=self.context).data

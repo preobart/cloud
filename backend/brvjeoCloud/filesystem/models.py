@@ -31,7 +31,7 @@ class File(models.Model):
     size = models.BigIntegerField()
     mime_type = models.CharField(max_length=100)
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField()
+    updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True) 
     preview_image = models.ImageField(upload_to="uploads/previews/", null=True, blank=True)
     duration_ms = models.BigIntegerField(null=True, blank=True)

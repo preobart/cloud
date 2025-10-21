@@ -48,3 +48,11 @@ SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 
 SECURE_SSL_REDIRECT = False
+
+MAX_FILE_UPLOAD_MB = 50
+ALLOWED_FILE_MIME_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "video/mp4",
+    "application/pdf",
+]

@@ -49,7 +49,7 @@ LOGGING = {
             "propagate": False,
         },
         "django.server": {
-            "handlers": [],  # отключаем вывод
+            "handlers": [],  
             "level": "ERROR",
             "propagate": False,
         },
