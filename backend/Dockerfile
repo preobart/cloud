@@ -32,6 +32,12 @@ WORKDIR /app/backend
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
+    
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libjpeg-dev \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy the application from the builder
 COPY --from=builder --chown=app:app /app /app

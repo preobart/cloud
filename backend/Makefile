@@ -54,7 +54,7 @@ test:
 	docker compose exec -T $(SERVICE) python manage.py test $(ARG) --parallel --keepdb
 
 test_reset:
-	docker compose exec -T $(SERVICE) python manage.py test $(ARG) --parallel
+	docker compose exec -T $(SERVICE) python manage.py test $(ARG) 
 
 update_dependencies:
 	docker compose down

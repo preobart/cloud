@@ -1,6 +1,7 @@
 from urllib.parse import quote
 
 from django.conf import settings
+from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -83,6 +84,7 @@ class FileViewSet(viewsets.ModelViewSet):
         file_obj.save()
         return Response({'message': f'Файл {file_obj.name} перемещен'})
     
+    @transaction.atomic
     @action(detail=False, methods=['post'])
     def bulk_upload(self, request):
         files = request.FILES.getlist('files')
@@ -121,17 +123,23 @@ class FolderViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Folder.objects.filter(owner=self.request.user)
     
+    @transaction.atomic
     def perform_destroy(self, instance):
         files = File.objects.filter(folder=instance, deleted_at__isnull=True)
         files.update(deleted_at=timezone.now())
         instance.delete()
     
     @action(detail=True)
-    def files(self, request, pk=None):
+    def contents(self, request, pk=None):
         folder = self.get_object()
+        subfolders = Folder.objects.filter(parent=folder, owner=request.user)
         files = File.objects.filter(owner=request.user, folder=folder, deleted_at__isnull=True)
-        serializer = FileSerializer(files, many=True, context={'request': request})
-        return Response(serializer.data)
+        folder_serializer = FolderSerializer(subfolders, many=True, context={'request': request})
+        file_serializer = FileSerializer(files, many=True, context={'request': request})
+        return Response({
+            "folders": folder_serializer.data,
+            "files": file_serializer.data
+        })
 
 
 class PublicSharedFileView(APIView):

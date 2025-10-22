@@ -1,21 +1,35 @@
-﻿import ffmpeg
+﻿import os
+
+from django.conf import settings
+
+import ffmpeg
 from celery import shared_task
-from filesystem.models import File
 from PIL import Image
+
+from brvjeoCloud.filesystem.models import File
+
+
+PREVIEWS_DIR = os.path.join(settings.BASE_DIR, "mediafiles/uploads/previews")
+os.makedirs(PREVIEWS_DIR, exist_ok=True)
 
 
 @shared_task
 def generate_preview(file_id):
     file = File.objects.get(id=file_id)
+    orig_path = file.file.path
+
+    base_name = os.path.splitext(os.path.basename(orig_path))[0]
+    preview_path = os.path.join(PREVIEWS_DIR, f"{base_name}_preview.jpg")
+
     if file.mime_type.startswith('image/'):
-        image = Image.open(file.path)
+        image = Image.open(orig_path)
         image.thumbnail((300, 300))
-        preview_path = file.path.replace('.', '_preview.')
         image.save(preview_path)
-        file.preview_image = preview_path
-        file.save()
     elif file.mime_type.startswith('video/'):
-        preview_path = file.path.replace('.', '_preview.jpg')
-        (ffmpeg.input(file.path, ss=1).filter('scale', 300, -1).output(preview_path, vframes=1).run())
-        file.preview_image = preview_path
-        file.save()
+        ffmpeg.input(orig_path, ss=0.5)\
+              .filter('scale', 300, -1)\
+              .output(preview_path, vframes=1)\
+              .run(overwrite_output=True, quiet=True)
+
+    file.preview_image.name = os.path.relpath(preview_path, settings.MEDIA_ROOT)
+    file.save()
