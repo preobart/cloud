@@ -9,17 +9,11 @@ from PIL import Image
 from brvjeoCloud.filesystem.models import File
 
 
-PREVIEWS_DIR = os.path.join(settings.BASE_DIR, "mediafiles/uploads/previews")
-os.makedirs(PREVIEWS_DIR, exist_ok=True)
-
-
 @shared_task
 def generate_preview(file_id):
     file = File.objects.get(id=file_id)
     orig_path = file.file.path
-
-    base_name = os.path.splitext(os.path.basename(orig_path))[0]
-    preview_path = os.path.join(PREVIEWS_DIR, f"{base_name}_preview.jpg")
+    preview_path = os.path.join(settings.PREVIEWS_DIR, f"{file_id}_preview.jpg")
 
     if file.mime_type.startswith('image/'):
         image = Image.open(orig_path)

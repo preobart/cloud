@@ -8,8 +8,13 @@ ALLOWED_HOSTS = ["localhost"]
 STATIC_ROOT = base_dir_join("staticfiles")
 STATIC_URL = "/static/"
 
-MEDIA_ROOT = base_dir_join("mediafiles")
+MEDIA_ROOT = base_dir_join("mediafiles/")
 MEDIA_URL = "/media/"
+
+CONTENT_DIR = base_dir_join("mediafiles/content")
+PREVIEWS_DIR = base_dir_join("mediafiles/previews")
+os.makedirs(CONTENT_DIR, exist_ok=True)
+os.makedirs(PREVIEWS_DIR, exist_ok=True)
 
 DATABASES = {
     "default": {

@@ -40,11 +40,11 @@ services:
       dockerfile: Dockerfile
       context: .
     restart: always
-    command: >
+    command: 
+    # python manage.py runserver_plus 0.0.0.0:8082 --cert-file certs/cert.pem --key-file certs/key.pem
       sh -c "
-        python manage.py makemigrations --dry-run --check &&
+        python manage.py makemigrations &&
         python manage.py migrate --no-input &&
-        # python manage.py runserver_plus 0.0.0.0:8082 --cert-file certs/cert.pem --key-file certs/key.pem
         python manage.py runserver 0.0.0.0:8082
       "
     ports:

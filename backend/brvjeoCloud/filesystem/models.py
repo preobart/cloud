@@ -27,13 +27,13 @@ class File(models.Model):
     name = models.CharField(max_length=255)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="files")
     folder = models.ForeignKey(Folder, null=True, blank=True, on_delete=models.SET_NULL, related_name="files")
-    file = models.FileField(upload_to="uploads/files/")
+    file = models.FileField(upload_to='content/')
     size = models.BigIntegerField()
     mime_type = models.CharField(max_length=100)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True) 
-    preview_image = models.ImageField(upload_to="uploads/previews/", null=True, blank=True)
+    preview_image = models.ImageField(upload_to="previews/", null=True, blank=True)
     duration_ms = models.BigIntegerField(null=True, blank=True)
 
     def __str__(self):

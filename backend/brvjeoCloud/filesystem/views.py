@@ -130,7 +130,7 @@ class FolderViewSet(viewsets.ModelViewSet):
         instance.delete()
     
     @action(detail=True)
-    def contents(self, request, pk=None):
+    def content(self, request, pk=None):
         folder = self.get_object()
         subfolders = Folder.objects.filter(parent=folder, owner=request.user)
         files = File.objects.filter(owner=request.user, folder=folder, deleted_at__isnull=True)

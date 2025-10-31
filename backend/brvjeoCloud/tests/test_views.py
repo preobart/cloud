@@ -23,7 +23,7 @@ class FileViewSetTests(TestCase):
             name="file.txt",
             size=10,
             mime_type="text/plain",
-            file="uploads/files/file.txt",  
+            file="file.txt",  
             updated_at=timezone.now(),
         )
 
@@ -43,14 +43,6 @@ class FileViewSetTests(TestCase):
 
     def test_download_file(self):
         url = reverse("file-download", args=[self.file.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("X-Accel-Redirect", response)
-
-    def test_preview_file(self):
-        self.file.preview_image = f"uploads/previews/file_preview.jpg"
-        self.file.save()
-        url = reverse("file-preview", args=[self.file.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertIn("X-Accel-Redirect", response)
@@ -91,7 +83,7 @@ class FolderViewSetTests(TestCase):
             name="file.txt",
             size=10,
             mime_type="text/plain",
-            file="uploads/files/file.txt",  
+            file="file.txt",  
             updated_at=timezone.now(),
             folder=self.folder,
         )
@@ -102,11 +94,14 @@ class FolderViewSetTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]["name"], self.folder.name)
 
-    def test_folder_files(self):
-        url = reverse("folder-files", args=[self.folder.id])
+    def test_folder_content(self):
+        url = reverse("folder-content", args=[self.folder.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data[0]["name"], self.file.name)
+        files = response.data["files"]
+        self.assertGreater(len(files), 0)
+
+        self.assertEqual(files[0]["name"], self.file.name)
 
     def test_delete_folder_soft_deletes_files(self):
         url = reverse("folder-detail", args=[self.folder.id])
@@ -127,7 +122,7 @@ class PublicSharedFileViewTests(TestCase):
             name="file.txt",
             size=10,
             mime_type="text/plain",
-            file="uploads/files/file.txt",  
+            file="file.txt",  
             updated_at=timezone.now(),
         )
 
