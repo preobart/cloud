@@ -3,7 +3,7 @@ import re
 from .base import *
 
 
-DEBUG = False
+DEBUG = True
 
 SECRET_KEY = env("SECRET_KEY")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS").split(",")
@@ -65,3 +65,11 @@ import logging.config
 
 
 logging.config.dictConfig(LOGGING)
+
+MAX_FILE_UPLOAD_MB = 50
+ALLOWED_FILE_MIME_TYPE = [
+    "image/jpeg",
+    "image/png",
+    "video/mp4",
+    "application/pdf",
+]

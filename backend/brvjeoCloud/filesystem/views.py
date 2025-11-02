@@ -2,12 +2,14 @@ from urllib.parse import quote
 
 from django.conf import settings
 from django.db import transaction
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -28,6 +30,16 @@ class FileViewSet(viewsets.ModelViewSet):
         instance.deleted_at = timezone.now()
         instance.save()
 
+    def get_parser_classes(self):
+        if getattr(self, "action", None) in ("create", "bulk_upload"):
+            return [MultiPartParser, FormParser]
+        return [JSONParser]
+    
+    @swagger_auto_schema(
+        request_body=None,
+        consumes=["multipart/form-data"],
+        responses={201: FileSerializer()},
+    )
     def create(self, request, *args, **kwargs):
         uploaded_file = request.FILES.get('file')
         if not uploaded_file:
@@ -50,14 +62,14 @@ class FileViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(file_obj, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
-    @action(detail=True)
+    @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         file_obj = self.get_object()
-        internal_path = '/protected-media/' + quote(file_obj.file.name.lstrip('/'))
-        response = HttpResponse()
+        file_path = file_obj.file.path
+        filename = quote(file_obj.name)
+        response = FileResponse(open(file_path, 'rb'), as_attachment=True, filename=filename)
         response['Content-Type'] = file_obj.mime_type or 'application/octet-stream'
-        response['Content-Disposition'] = f'attachment; filename="{quote(file_obj.name)}"'
-        response['X-Accel-Redirect'] = internal_path
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
     
     @action(detail=True)
@@ -66,7 +78,7 @@ class FileViewSet(viewsets.ModelViewSet):
         if not file_obj.preview_image:
             return Response({'error': 'Не удалось загрузить превью'})
         
-        internal_path = '/protected-media/' + quote(file_obj.preview_image.name.lstrip('/'))  
+        internal_path = '/protected-media/' + quote(file_obj.preview_image.name)  
         response = HttpResponse()
         response['Content-Type'] = 'image/jpeg'
         response['X-Accel-Redirect'] = internal_path
@@ -84,6 +96,11 @@ class FileViewSet(viewsets.ModelViewSet):
         file_obj.save()
         return Response({'message': f'Файл {file_obj.name} перемещен'})
     
+    @swagger_auto_schema(
+        consumes=["multipart/form-data"],
+        request_body=None,
+        responses={201: FileSerializer(many=True)},
+    )
     @transaction.atomic
     @action(detail=False, methods=['post'])
     def bulk_upload(self, request):
@@ -123,6 +140,9 @@ class FolderViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Folder.objects.filter(owner=self.request.user)
     
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+        
     @transaction.atomic
     def perform_destroy(self, instance):
         files = File.objects.filter(folder=instance, deleted_at__isnull=True)

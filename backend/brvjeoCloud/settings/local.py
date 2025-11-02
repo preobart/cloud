@@ -50,7 +50,7 @@ CSRF_COOKIE_SECURE = False
 SECURE_SSL_REDIRECT = False
 
 MAX_FILE_UPLOAD_MB = 50
-ALLOWED_FILE_MIME_TYPES = [
+ALLOWED_FILE_MIME_TYPE = [
     "image/jpeg",
     "image/png",
     "video/mp4",

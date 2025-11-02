@@ -10,13 +10,13 @@ from .models import File
 class AnalyticsViewSet(viewsets.ViewSet):
     @action(detail=False)
     def count_by_type(self, request):
-        data = File.objects.filter(owner=request.user, deleted_at_isnull=True).values('mime_type').annotate(count=Count('id')).order_by('-count')
-        return Response(list(data))
+        data = File.objects.filter(owner=request.user, deleted_at__isnull=True).values('mime_type').annotate(count=Count('id')).order_by('-count')
+        return Response(data)
     
     @action(detail=False)
     def total_storage(self, request):
-        data = File.objects.filter(owner=request.user, deleted_at_isnull=True).aaggregate(total_size=Sum('size'))
-        return Response(list(data))
+        data = File.objects.filter(owner=request.user, deleted_at__isnull=True).aggregate(total_size=Sum('size'))
+        return Response(data)
     
     @action(detail=False)
     def storage_by_type(self, request):
@@ -26,4 +26,4 @@ class AnalyticsViewSet(viewsets.ViewSet):
             .annotate(total_size=Sum('size'))
             .order_by('-total_size')
         )
-        return Response(list(data))
+        return Response(data)
