@@ -36,6 +36,8 @@ class FileViewSet(viewsets.ModelViewSet):
         return [JSONParser]
     
     @swagger_auto_schema(
+        operation_description="Загрузка файла",
+        manual_parameters=[],
         request_body=None,
         consumes=["multipart/form-data"],
         responses={201: FileSerializer()},

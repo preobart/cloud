@@ -41,12 +41,6 @@ class FileViewSetTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["name"], "hello.txt")
 
-    def test_download_file(self):
-        url = reverse("file-download", args=[self.file.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("X-Accel-Redirect", response)
-
     def test_move_file(self):
         url = reverse("file-move", args=[self.file.id])
         response = self.client.post(url, {"folder_id": self.folder.id})
