@@ -73,8 +73,6 @@ services:
     volumes:
       - .:/app/backend
       - /app/.venv
-      - ./media:/app/backend/media
-      - ./static:/app/backend/static
     
 
   celery:
@@ -101,6 +99,9 @@ services:
       REDIS_URL: ${REDIS_URL}
     networks:
       - brvjeoCloud
+    volumes:
+      - .:/app/backend
+      - /app/.venv
     
   nginx:
     image: nginx:latest

@@ -13,6 +13,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..tasks import generate_preview
 from .models import File, Folder, SharedLink
 from .permissions import IsOwner
 from .serializers import FileSerializer, FolderSerializer
@@ -24,11 +25,15 @@ class FileViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOwner]
 
     def get_queryset(self):
+        if not getattr(self.request, 'user', None) or self.request.user.is_anonymous:
+            return File.objects.none()
         return File.objects.filter(owner=self.request.user, deleted_at__isnull=True)
     
     def perform_destroy(self, instance):
         instance.deleted_at = timezone.now()
         instance.save()
+        if instance.preview_image:
+            instance.preview_image.delete(save=False)
 
     def get_parser_classes(self):
         if getattr(self, "action", None) in ("create", "bulk_upload"):
@@ -45,25 +50,32 @@ class FileViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         uploaded_file = request.FILES.get('file')
         if not uploaded_file:
-            return Response({'error': 'Файл не передан'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if uploaded_file.size > settings.MAX_FILE_UPLOAD_MB * 1024 * 1024:
-            return Response({'error': 'Размер файла превышает допустимый'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if uploaded_file.content_type not in settings.ALLOWED_FILE_MIME_TYPE:
-            return Response({'error': 'Недопустимый тип файла'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        file_obj = File.objects.create(
+            return Response({'error': 'Файл не передан'}, status=400)
+
+        folder = None
+        folder_id = request.data.get('folder') or request.data.get('folder_id')
+        if folder_id:
+            folder = Folder.objects.filter(id=folder_id, owner=request.user).first()
+            if not folder:
+                return Response({'error': 'Folder not found'}, status=400)
+
+        file_obj = File(
             owner=request.user,
             name=uploaded_file.name,
             size=uploaded_file.size,
             mime_type=uploaded_file.content_type,
-            file=uploaded_file  
+            folder=folder
         )
+        file_obj.save() 
+
+        file_obj.file = uploaded_file
+        file_obj.save()
+
+        generate_preview.delay(str(file_obj.id))
 
         serializer = self.get_serializer(file_obj, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+        return Response(serializer.data, status=201)
+
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         file_obj = self.get_object()
@@ -80,10 +92,14 @@ class FileViewSet(viewsets.ModelViewSet):
         if not file_obj.preview_image:
             return Response({'error': 'Не удалось загрузить превью'})
         
+        if file_obj.owner != request.user:
+            return Response({'error': 'Нет доступа'}, status=403)
+        
         internal_path = '/protected-media/' + quote(file_obj.preview_image.name)  
         response = HttpResponse()
         response['Content-Type'] = 'image/jpeg'
         response['X-Accel-Redirect'] = internal_path
+        response['Cache-Control'] = 'private, max-age=3600'
         return response
     
     @action(detail=True, methods=['post'])
@@ -109,15 +125,25 @@ class FileViewSet(viewsets.ModelViewSet):
         files = request.FILES.getlist('files')
         uploaded_files = []
 
+        folder_id = request.data.get('folder') or request.data.get('folder_id')
+        folder = None
+        if folder_id:
+            try:
+                folder = Folder.objects.get(pk=folder_id, owner=request.user)
+            except Folder.DoesNotExist:
+                return Response({'error': 'Folder not found'}, status=status.HTTP_400_BAD_REQUEST)
+
         for uploaded_file in files:
             file_obj = File.objects.create(
                 owner=request.user,
                 name=uploaded_file.name,
                 size=uploaded_file.size,
                 mime_type=uploaded_file.content_type,
-                file=uploaded_file  
+                file=uploaded_file,
+                folder=folder
             )
             uploaded_files.append(file_obj)
+            generate_preview.delay(file_obj.id)
 
         serializer = self.get_serializer(uploaded_files, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -140,6 +166,8 @@ class FolderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOwner]
 
     def get_queryset(self):
+        if not getattr(self.request, 'user', None) or self.request.user.is_anonymous:
+            return Folder.objects.none()
         return Folder.objects.filter(owner=self.request.user)
     
     def perform_create(self, serializer):

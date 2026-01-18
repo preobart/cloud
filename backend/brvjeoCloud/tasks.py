@@ -1,6 +1,6 @@
-﻿import os
+﻿import io
 
-from django.conf import settings
+from django.core.files import File as DjangoFile
 
 import ffmpeg
 from celery import shared_task
@@ -13,17 +13,25 @@ from brvjeoCloud.filesystem.models import File
 def generate_preview(file_id):
     file = File.objects.get(id=file_id)
     orig_path = file.file.path
-    preview_path = os.path.join(settings.PREVIEWS_DIR, f"{file_id}_preview.jpg")
 
-    if file.mime_type.startswith('image/'):
+    if file.mime_type.startswith("image/"):
         image = Image.open(orig_path)
+        if image.mode != "RGB":
+            image = image.convert("RGB")
         image.thumbnail((300, 300))
-        image.save(preview_path)
-    elif file.mime_type.startswith('video/'):
-        ffmpeg.input(orig_path, ss=0.5)\
-              .filter('scale', 300, -1)\
-              .output(preview_path, vframes=1)\
-              .run(overwrite_output=True, quiet=True)
+        buf = io.BytesIO()
+        image.save(buf, format="JPEG")
+        buf.seek(0)
+        file.preview_image.save(f"{file_id}.jpg", DjangoFile(buf), save=True)
 
-    file.preview_image.name = os.path.relpath(preview_path, settings.MEDIA_ROOT)
-    file.save()
+    elif file.mime_type.startswith("video/"):
+        process = (
+            ffmpeg
+            .input(orig_path, ss=0.5)
+            .filter("scale", 300, -1)
+            .output("pipe:", vframes=1, format="image2", vcodec="mjpeg")
+            .run(capture_stdout=True, capture_stderr=True)
+        )
+        stdout, _ = process  
+        buf = io.BytesIO(stdout)
+        file.preview_image.save(f"{file_id}.jpg", DjangoFile(buf), save=True)

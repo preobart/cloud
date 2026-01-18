@@ -15,7 +15,6 @@ dependencies = [
     "django-permissions-policy>=4.26.0",
     "django-redis>=6.0.0",
     "djangorestframework>=3.16.0",
-    "djoser>=2.3.3",
     "drf-yasg>=1.21.11",
     "ffmpeg-python>=0.2.0",
     "gunicorn>=23.0.0",

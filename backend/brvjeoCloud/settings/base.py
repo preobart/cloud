@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
-from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -24,14 +23,16 @@ env = os.environ.get
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+
 def base_dir_join(*args):
     return os.path.join(BASE_DIR, *args)
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY')
+SECRET_KEY = env("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -41,104 +42,79 @@ SITE_ID = 1
 ALLOWED_HOSTS = []
 
 # Application definition
-
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'rest_framework_simplejwt',
-    'djoser',
-    'drf_yasg',
-    'django_celery_beat',
-    'django_extensions',
-    'corsheaders',
-    'brvjeoCloud.filesystem',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django_extensions",
+    "corsheaders",
+    "drf_yasg",
+    "rest_framework",
+    "django_celery_beat",
+    "brvjeoCloud.filesystem",
 ]
 
 MIDDLEWARE = [
-    'django.middleware.gzip.GZipMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django_permissions_policy.PermissionsPolicyMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.gzip.GZipMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django_permissions_policy.PermissionsPolicyMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'brvjeoCloud.urls'
+ROOT_URLCONF = "brvjeoCloud.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [base_dir_join("templates")],
-        'APP_DIRS': False,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-            "loaders": [
-                (
-                    "django.template.loaders.cached.Loader",
-                    [
-                        "django.template.loaders.filesystem.Loader",
-                        "django.template.loaders.app_directories.Loader",
-                    ],
-                ),
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'brvjeoCloud.wsgi.application'
-
+WSGI_APPLICATION = "brvjeoCloud.wsgi.application"
 
 # Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('POSTGRES_DB'),
-        'USER': env('POSTGRES_USER'),
-        'PASSWORD': env('POSTGRES_PASSWORD'),
-        'HOST': env('POSTGRES_HOST', 'db'),
-        'PORT': env('POSTGRES_PORT', '5432'),
-        'TEST': {
-            'DEPENDENCIES': [], 
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": env("POSTGRES_DB"),
+        "USER": env("POSTGRES_USER"),   
+        "PASSWORD": env("POSTGRES_PASSWORD"),
+        "HOST": env("POSTGRES_HOST", "db"),
+        "PORT": env("POSTGRES_PORT", "5432"),
+        "TEST": {
+            "DEPENDENCIES": [],
         },
     }
 }
 
-
 # Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# DRF
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication", "rest_framework.authentication.SessionAuthentication",),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework.authentication.SessionAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     'DEFAULT_THROTTLE_CLASSES': (
         'rest_framework.throttling.AnonRateThrottle',
@@ -150,12 +126,7 @@ REST_FRAMEWORK = {
     }
 }
 
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-    "AUTH_HEADER_TYPES": ("Bearer",),  
-}
-
+# Swagger settings
 SWAGGER_SETTINGS = {
     "SECURITY_DEFINITIONS": {
         "Bearer": {
@@ -166,46 +137,6 @@ SWAGGER_SETTINGS = {
         }
     },
     "USE_SESSION_AUTH": False,
-}
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'Europe/Moscow'
-
-USE_I18N = True
-
-USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-STATIC_URL = '/static/'
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# All available policies are listed at:
-# https://github.com/w3c/webappsec-permissions-policy/blob/main/features.md
-# Empty list means the policy is disabled
-PERMISSIONS_POLICY = {
-    "accelerometer": [],
-    "camera": [],
-    "display-capture": [],
-    "encrypted-media": [],
-    "geolocation": [],
-    "gyroscope": [],
-    "magnetometer": [],
-    "microphone": [],
-    "midi": [],
-    "payment": [],
-    "usb": [],
-    "xr-spatial-tracking": [],
 }
 
 # SSO via Cookies
@@ -250,6 +181,34 @@ CACHES = {
 CORS_ALLOWED_ORIGINS = []
 CORS_ALLOW_CREDENTIALS = True
 
+# Internationalization
+LANGUAGE_CODE = "en-us"
+TIME_ZONE = "Europe/Moscow"
+USE_I18N = True
+USE_TZ = True
+
+# Static
+# Static files are served by frontend, keeping minimal support for Django admin
+STATIC_URL = "/static/"
+STATIC_ROOT = base_dir_join("staticfiles")
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Permissions Policy (disable all)
+PERMISSIONS_POLICY = {
+    "accelerometer": [],
+    "camera": [],
+    "display-capture": [],
+    "encrypted-media": [],
+    "geolocation": [],
+    "gyroscope": [],
+    "magnetometer": [],
+    "microphone": [],
+    "midi": [],
+    "payment": [],
+    "usb": [],
+    "xr-spatial-tracking": [],
+}
+
 # Enables HTTPS with HSTS (including subdomains and preload), redirects HTTP to HTTPS,
 # and sets security headers to prevent MIME sniffing, XSS, and clickjacking.
 SECURE_HSTS_SECONDS = 0
@@ -261,6 +220,14 @@ SECURE_CONTENT_TYPE_NOSNIFF = False
 SECURE_BROWSER_XSS_FILTER = False
 X_FRAME_OPTIONS = "DENY"
 
+# File upload settings
+MAX_FILE_UPLOAD_MB = 50
+ALLOWED_FILE_MIME_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "video/mp4",
+    "application/pdf",
+]
 
 # Celery
 CELERY_ACCEPT_CONTENT = ["json"]
@@ -288,10 +255,5 @@ CELERY_WORKER_SEND_TASK_EVENTS = env("CELERY_WORKER_SEND_TASK_EVENTS", "true")
 CELERY_EVENT_QUEUE_EXPIRES = float(env("CELERY_EVENT_QUEUE_EXPIRES", 60.0))
 CELERY_EVENT_QUEUE_TTL = float(env("CELERY_EVENT_QUEUE_TTL", 5.0))
 
-MAX_FILE_UPLOAD_MB = 50
-ALLOWED_FILE_MIME_TYPES = [
-    "image/jpeg",
-    "image/png",
-    "video/mp4",
-    "application/pdf",
-]
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
