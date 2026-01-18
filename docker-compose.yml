@@ -42,7 +42,7 @@ services:
       sh -c "
         python manage.py makemigrations --dry-run --check &&
         python manage.py migrate --no-input &&
-        gunicorn brvjeoCloud.wsgi:application \
+        gunicorn cloud.wsgi:application \
           --bind 0.0.0.0:8081 \
           --access-logfile - \
           --error-logfile - \
@@ -78,7 +78,7 @@ services:
   celery:
     image: 
     restart: always
-    command: celery --app=brvjeoCloud.celery_app worker --loglevel=info
+    command: celery --app=cloud.celery_app worker --loglevel=info
     depends_on:
       db:
         condition: service_started
@@ -101,7 +101,7 @@ services:
   celery_beat:
     image: 
     restart: always
-    command: celery --app=brvjeoCloud.celery_app beat --scheduler django_celery_beat.schedulers:DatabaseScheduler --loglevel=info
+    command: celery --app=cloud.celery_app beat --scheduler django_celery_beat.schedulers:DatabaseScheduler --loglevel=info
     depends_on:
       db:
         condition: service_healthy
@@ -125,7 +125,7 @@ services:
 
 volumes:
   dbdata:
-    name: brvjeoCloud_dbdata
+    name: cloud_dbdata
 
 networks:
   backend:

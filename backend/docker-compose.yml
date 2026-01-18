@@ -11,7 +11,7 @@ services:
     volumes:
       - dbdata:/var/lib/postgresql/data
     networks:
-      - brvjeoCloud
+      - cloud
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -22,7 +22,7 @@ services:
     image: "rabbitmq:alpine"
     restart: always
     networks:
-      - brvjeoCloud
+      - cloud
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_running"]
       interval: 5s
@@ -33,7 +33,7 @@ services:
     image: "redis:alpine"
     restart: always
     networks:
-      - brvjeoCloud
+      - cloud
 
   app:
     build:
@@ -45,7 +45,7 @@ services:
             python manage.py makemigrations &&
             python manage.py migrate --no-input && 
             python manage.py runserver 0.0.0.0:8082"
-    # gunicorn --bind 0.0.0.0:8082 brvjeoCloud.wsgi:application
+    # gunicorn --bind 0.0.0.0:8082 cloud.wsgi:application
     # python manage.py runserver_plus 0.0.0.0:8082 --cert-file certs/cert.pem --key-file certs/key.pem
 
     ports:
@@ -69,7 +69,7 @@ services:
       REDIS_URL: ${REDIS_URL}
       PORT: 8082
     networks:
-      - brvjeoCloud
+      - cloud
     volumes:
       - .:/app/backend
       - /app/.venv
@@ -80,7 +80,7 @@ services:
       dockerfile: Dockerfile
       context: .
     restart: always
-    command: celery --app=brvjeoCloud.celery_app worker --loglevel=info
+    command: celery --app=cloud.celery_app worker --loglevel=info
     depends_on:
       db:
         condition: service_started
@@ -98,7 +98,7 @@ services:
       CELERY_BROKER_URL: ${CELERY_BROKER_URL}
       REDIS_URL: ${REDIS_URL}
     networks:
-      - brvjeoCloud
+      - cloud
     volumes:
       - .:/app/backend
       - /app/.venv
@@ -113,14 +113,14 @@ services:
     depends_on:
       - app
     networks:
-      - brvjeoCloud
+      - cloud
 
   # celery_beat:
   #   build:
   #     dockerfile: Dockerfile
   #     context: .
   #   restart: always
-  #   command: celery --app=brvjeoCloud.celery_app beat --scheduler django_celery_beat.schedulers:DatabaseScheduler --loglevel=info
+  #   command: celery --app=cloud.celery_app beat --scheduler django_celery_beat.schedulers:DatabaseScheduler --loglevel=info
   #   depends_on:
   #     db:
   #       condition: service_healthy
@@ -140,12 +140,12 @@ services:
   #     CELERY_BROKER_URL: ${CELERY_BROKER_URL}
   #     REDIS_URL: ${REDIS_URL}
   #   networks:
-  #     - brvjeoCloud
+  #     - cloud
 
 volumes:
   dbdata:
-    name: brvjeoCloud_dbdata
+    name: cloud_dbdata
 
 networks:
-  brvjeoCloud:
+  cloud:
     driver: bridge

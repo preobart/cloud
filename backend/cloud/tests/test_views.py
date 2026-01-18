@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from rest_framework.test import APIClient
 
-from brvjeoCloud.filesystem.models import File, Folder
+from cloud.filesystem.models import File, Folder
 
 
 class FileViewSetTests(TestCase):

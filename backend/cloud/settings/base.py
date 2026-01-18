@@ -54,7 +54,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     "rest_framework",
     "django_celery_beat",
-    "brvjeoCloud.filesystem",
+    "cloud.filesystem",
 ]
 
 MIDDLEWARE = [
@@ -70,7 +70,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "brvjeoCloud.urls"
+ROOT_URLCONF = "cloud.urls"
 
 TEMPLATES = [
     {
@@ -87,7 +87,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "brvjeoCloud.wsgi.application"
+WSGI_APPLICATION = "cloud.wsgi.application"
 
 # Database
 DATABASES = {

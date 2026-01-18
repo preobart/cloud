@@ -6,7 +6,7 @@ import ffmpeg
 from celery import shared_task
 from PIL import Image
 
-from brvjeoCloud.filesystem.models import File
+from cloud.filesystem.models import File
 
 
 @shared_task

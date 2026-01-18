@@ -15,6 +15,6 @@ if settings_module is None:
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_module)
 
-app = Celery("brvjeoCloud")  # type: ignore
+app = Celery("cloud")  # type: ignore
 app.config_from_object("django.conf:settings", namespace="CELERY")
-app.autodiscover_tasks(["brvjeoCloud"])
+app.autodiscover_tasks(["cloud"])

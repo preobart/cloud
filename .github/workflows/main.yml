@@ -6,7 +6,7 @@ on:
   pull_request:
 
 env:
-  DJANGO_SETTINGS_MODULE: "brvjeoCloud.settings.local"
+  DJANGO_SETTINGS_MODULE: "cloud.settings.local"
   DATABASE_URL: "sqlite:///"
   REDIS_URL: "redis://"
   ALLOWED_HOSTS: ".example.org"
@@ -60,4 +60,4 @@ jobs:
       - run: uv run python manage.py test
         env:
           SECRET_KEY: $
-          DJANGO_SETTINGS_MODULE: "brvjeoCloud.settings.test"
+          DJANGO_SETTINGS_MODULE: "cloud.settings.test"

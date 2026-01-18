@@ -8,8 +8,8 @@ from django.utils import timezone
 import ffmpeg
 from PIL import Image
 
-from brvjeoCloud.filesystem.models import File
-from brvjeoCloud.tasks import generate_preview
+from cloud.filesystem.models import File
+from cloud.tasks import generate_preview
 
 
 class GeneratePreviewTaskTests(TestCase):
