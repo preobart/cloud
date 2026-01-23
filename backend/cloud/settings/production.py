@@ -20,7 +20,9 @@ STATIC_ROOT = base_dir_join("staticfiles")
 
 MEDIA_ROOT = base_dir_join("media")
 MEDIA_URL = "/media/"
+
 PREVIEWS_DIR = base_dir_join("media", "previews")
+CONTENT_DIR = base_dir_join("media", "content")
 
 # Celery
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="")

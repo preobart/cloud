@@ -1,8 +1,7 @@
 from urllib.parse import quote
 
-from django.conf import settings
 from django.db import transaction
-from django.http import FileResponse, HttpResponse
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -25,40 +24,32 @@ class FileViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOwner]
 
     def get_queryset(self):
-        if not getattr(self.request, 'user', None) or self.request.user.is_anonymous:
+        if not self.request.user.is_authenticated:
             return File.objects.none()
         return File.objects.filter(owner=self.request.user, deleted_at__isnull=True)
     
     def perform_destroy(self, instance):
         instance.deleted_at = timezone.now()
         instance.save()
-        if instance.preview_image:
-            instance.preview_image.delete(save=False)
 
-    def get_parser_classes(self):
-        if getattr(self, "action", None) in ("create", "bulk_upload"):
-            return [MultiPartParser, FormParser]
-        return [JSONParser]
-    
+    def get_parsers(self):
+        if self.action in ("create", "bulk_upload"):
+            return [MultiPartParser(), FormParser()]
+        return [JSONParser()]
+
     @swagger_auto_schema(
-        operation_description="Загрузка файла",
-        manual_parameters=[],
         request_body=None,
         consumes=["multipart/form-data"],
         responses={201: FileSerializer()},
     )
     def create(self, request, *args, **kwargs):
         uploaded_file = request.FILES.get('file')
-        if not uploaded_file:
-            return Response({'error': 'Файл не передан'}, status=400)
+        folder_id = request.data.get('folder_id')
 
-        folder = None
-        folder_id = request.data.get('folder') or request.data.get('folder_id')
-        if folder_id:
-            folder = Folder.objects.filter(id=folder_id, owner=request.user).first()
-            if not folder:
-                return Response({'error': 'Folder not found'}, status=400)
+        if not uploaded_file or not folder_id:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
+        folder = Folder.objects.filter(id=folder_id, owner=request.user).first()
         file_obj = File(
             owner=request.user,
             name=uploaded_file.name,
@@ -71,7 +62,7 @@ class FileViewSet(viewsets.ModelViewSet):
         file_obj.file = uploaded_file
         file_obj.save()
 
-        generate_preview.delay(str(file_obj.id))
+        generate_preview.delay(file_obj)
 
         serializer = self.get_serializer(file_obj, context={'request': request})
         return Response(serializer.data, status=201)
@@ -79,23 +70,20 @@ class FileViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         file_obj = self.get_object()
-        file_path = file_obj.file.path
-        filename = quote(file_obj.name)
-        response = FileResponse(open(file_path, 'rb'), as_attachment=True, filename=filename)
+        internal_path = '/protected-media/' + file_obj.file.name.lstrip('/')
+        response = HttpResponse()
         response['Content-Type'] = file_obj.mime_type or 'application/octet-stream'
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Disposition'] = f'attachment; filename="{quote(file_obj.name)}"'
+        response['X-Accel-Redirect'] = internal_path
         return response
     
     @action(detail=True)
     def preview(self, request, pk=None):
         file_obj = self.get_object()
         if not file_obj.preview_image:
-            return Response({'error': 'Не удалось загрузить превью'})
+            return Response({'error': 'Preview not available'}, status=status.HTTP_404_NOT_FOUND)
         
-        if file_obj.owner != request.user:
-            return Response({'error': 'Нет доступа'}, status=403)
-        
-        internal_path = '/protected-media/' + quote(file_obj.preview_image.name)  
+        internal_path = '/protected-media/' + file_obj.preview_image.name.lstrip('/')
         response = HttpResponse()
         response['Content-Type'] = 'image/jpeg'
         response['X-Accel-Redirect'] = internal_path
@@ -108,11 +96,11 @@ class FileViewSet(viewsets.ModelViewSet):
         folder_id = request.data.get('folder_id')
 
         if not folder_id:
-            return Response({'message': 'Не указан folder_id'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'folder_id is required'}, status=status.HTTP_400_BAD_REQUEST)
         
         file_obj.folder_id = folder_id
         file_obj.save()
-        return Response({'message': f'Файл {file_obj.name} перемещен'})
+        return Response({'message': f'File {file_obj.name} moved'})
     
     @swagger_auto_schema(
         consumes=["multipart/form-data"],
@@ -125,7 +113,7 @@ class FileViewSet(viewsets.ModelViewSet):
         files = request.FILES.getlist('files')
         uploaded_files = []
 
-        folder_id = request.data.get('folder') or request.data.get('folder_id')
+        folder_id = request.data.get('folder_id')
         folder = None
         if folder_id:
             try:
@@ -158,6 +146,40 @@ class FileViewSet(viewsets.ModelViewSet):
         )
         url = request.build_absolute_uri(f'/p/{shared_link.token}/')
         return Response({'url': url})
+    
+
+    @action(detail=False, methods=['get'])
+    def trash(self, request):
+        deleted_files = File.objects.filter(deleted_at__isnull=False).order_by('-deleted_at')
+        serializer = self.get_serializer(deleted_files, many=True, context={'request': request})
+        return Response(serializer.data)
+
+
+    @action(detail=True, methods=['post'])
+    def restore(self, request, pk=None):
+        try:
+            file_obj = File.objects.get(id=pk, owner=request.user, deleted_at__isnull=False)
+        except File.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        if not file_obj.can_restore():
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        
+        file_obj.deleted_at = None
+        file_obj.save()
+        serializer = self.get_serializer(file_obj, context={'request': request})
+        return Response(serializer.data)
+    
+    
+    @action(detail=True, methods=['post'])
+    def permanent_delete(self, request, pk=None):
+        try:
+            file_obj = File.objects.get(id=pk, owner=request.user, deleted_at__isnull=False)
+        except File.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        file_obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class FolderViewSet(viewsets.ModelViewSet):
@@ -166,7 +188,7 @@ class FolderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOwner]
 
     def get_queryset(self):
-        if not getattr(self.request, 'user', None) or self.request.user.is_anonymous:
+        if not self.request.user.is_authenticated:
             return Folder.objects.none()
         return Folder.objects.filter(owner=self.request.user)
     
@@ -195,8 +217,8 @@ class FolderViewSet(viewsets.ModelViewSet):
 class PublicSharedFileView(APIView):
     def get(self, request, token):
         shared_link = get_object_or_404(SharedLink, token=token)
-        if shared_link.is_expired():
-            return Response({'error': 'Ссылка недействительна или истекла'}, status=status.HTTP_404_NOT_FOUND)
+        if not shared_link.is_valid():
+            return Response({'error': 'Link is invalid or expired'}, status=status.HTTP_404_NOT_FOUND)
         
         file_obj = shared_link.file
         shared_link.increment_download()

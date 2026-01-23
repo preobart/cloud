@@ -4,18 +4,10 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
 
+from cloud.utils import file_upload_path, preview_upload_path
+
 
 User = get_user_model()
-
-
-def file_upload_path(self, filename):
-    ext = filename.split('.')[-1]
-    uid = str(self.id).replace('-', '')
-    return f"content/{uid[:2]}/{uid[2:4]}/{self.id}.{ext}"
-
-def preview_upload_path(self, filename):
-    uid = str(self.id).replace('-', '')
-    return f"previews/{uid[:2]}/{uid[2:4]}/{self.id}.jpg"
 
 
 class Folder(models.Model):
@@ -51,6 +43,14 @@ class File(models.Model):
     def __str__(self):
         return self.name
 
+    def is_deleted(self):
+        return self.deleted_at is not None
+    
+    def can_restore(self):
+        if not self.is_deleted():
+            return False
+        return (timezone.now() - self.deleted_at).days < 30
+
 
 class SharedLink(models.Model):
     file = models.ForeignKey(File, on_delete=models.CASCADE, related_name="shared_links")
@@ -62,13 +62,16 @@ class SharedLink(models.Model):
 
     def __str__(self):
         return self.token
-
+    
     def is_expired(self):
-        if self.expires_at and timezone.now() > self.expires_at:
-            return True
+        return self.expires_at is not None and timezone.now() > self.expires_at
+
+    def is_valid(self):
+        if self.is_expired():
+            return False
         if self.max_downloads is not None and self.download_count >= self.max_downloads:
-            return True
-        return False
+            return False
+        return True
 
     def increment_download(self):
         self.download_count += 1
