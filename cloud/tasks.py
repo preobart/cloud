@@ -1,4 +1,4 @@
-﻿import io
+import io
 from datetime import timedelta
 
 from django.core.files import File as DjangoFile
@@ -12,7 +12,8 @@ from cloud.filesystem.models import File
 
 
 @shared_task
-def generate_preview(file):
+def generate_preview(file_id):
+    file = File.objects.get(pk=file_id)
     orig_path = file.file.path
     if file.mime_type.startswith("image/"):
         image = Image.open(orig_path)
@@ -22,7 +23,7 @@ def generate_preview(file):
         buf = io.BytesIO()
         image.save(buf, format="JPEG")
         buf.seek(0)
-        file.preview_image.save(f"{file.file_id}.jpg", DjangoFile(buf), save=True)
+        file.preview_image.save(f"{file.id}.jpg", DjangoFile(buf), save=True)
     elif file.mime_type.startswith("video/"):
         process = (
             ffmpeg
@@ -31,9 +32,9 @@ def generate_preview(file):
             .output("pipe:", vframes=1, format="image2", vcodec="mjpeg")
             .run(capture_stdout=True, capture_stderr=True)
         )
-        stdout, _ = process  
+        stdout, _ = process
         buf = io.BytesIO(stdout)
-        file.preview_image.save(f"{file.file_id}.jpg", DjangoFile(buf), save=True)
+        file.preview_image.save(f"{file.id}.jpg", DjangoFile(buf), save=True)
 
 
 @shared_task

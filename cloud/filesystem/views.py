@@ -1,6 +1,8 @@
 from urllib.parse import quote
 
+from django.conf import settings
 from django.db import transaction
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -8,7 +10,6 @@ from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -32,11 +33,6 @@ class FileViewSet(viewsets.ModelViewSet):
         instance.deleted_at = timezone.now()
         instance.save()
 
-    def get_parsers(self):
-        if self.action in ("create", "bulk_upload"):
-            return [MultiPartParser(), FormParser()]
-        return [JSONParser()]
-
     @swagger_auto_schema(
         request_body=None,
         consumes=["multipart/form-data"],
@@ -48,6 +44,10 @@ class FileViewSet(viewsets.ModelViewSet):
 
         if not uploaded_file or not folder_id:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        used = File.objects.filter(owner=request.user, deleted_at__isnull=True).aggregate(s=Sum('size'))['s'] or 0
+        if used + uploaded_file.size > settings.QUOTA_STORAGE_BYTES_PER_USER:
+            return Response({'error': 'Storage quota exceeded'}, status=status.HTTP_403_FORBIDDEN)
 
         folder = Folder.objects.filter(id=folder_id, owner=request.user).first()
         file_obj = File(
@@ -62,7 +62,7 @@ class FileViewSet(viewsets.ModelViewSet):
         file_obj.file = uploaded_file
         file_obj.save()
 
-        generate_preview.delay(file_obj)
+        generate_preview.delay(file_obj.pk)
 
         serializer = self.get_serializer(file_obj, context={'request': request})
         return Response(serializer.data, status=201)
@@ -121,6 +121,11 @@ class FileViewSet(viewsets.ModelViewSet):
             except Folder.DoesNotExist:
                 return Response({'error': 'Folder not found'}, status=status.HTTP_400_BAD_REQUEST)
 
+        used = File.objects.filter(owner=request.user, deleted_at__isnull=True).aggregate(s=Sum('size'))['s'] or 0
+        total_new = sum(f.size for f in files)
+        if used + total_new > settings.QUOTA_STORAGE_BYTES_PER_USER:
+            return Response({'error': 'Storage quota exceeded'}, status=status.HTTP_403_FORBIDDEN)
+
         for uploaded_file in files:
             file_obj = File.objects.create(
                 owner=request.user,
@@ -150,7 +155,7 @@ class FileViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def trash(self, request):
-        deleted_files = File.objects.filter(deleted_at__isnull=False).order_by('-deleted_at')
+        deleted_files = File.objects.filter(owner=request.user, deleted_at__isnull=False).order_by('-deleted_at')
         serializer = self.get_serializer(deleted_files, many=True, context={'request': request})
         return Response(serializer.data)
 

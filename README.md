@@ -9,7 +9,7 @@ The project is built with Django REST Framework and integrates with a [centraliz
 
 ## Setup
 
-1. Set up environment variables in the `backend/.env` file.
+1. Set up environment variables in the `.env` file.
 
 2. Run the services with the following command and navigate to [`http://localhost:8082`](http://localhost:8082):
     ```bash

@@ -1,0 +1,14 @@
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS deps
+WORKDIR /app
+ENV UV_PYTHON_DOWNLOADS=0
+
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --dev
+
+FROM python:3.13-slim-bookworm
+WORKDIR /app
+ENV PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:$PATH"
+
+COPY --from=deps /app/.venv /app/.venv

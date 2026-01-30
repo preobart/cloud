@@ -3,10 +3,11 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+
 # C extensions
 *.so
-backend/media/
-backend/static/
+media/
+static/
 
 # Distribution / packaging
 .Python

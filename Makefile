@@ -1,0 +1,60 @@
+SHELL := /bin/zsh -eu -o pipefail
+
+ARG := $(word 2, $(MAKECMDGOALS))
+SERVICE := app
+
+.PHONY: clean up down restart build logs shell manage migrate \
+        makemigrations createsuperuser check test test_reset \
+		update_dependencies clean_migrations
+
+clean:
+	@find . -name "*.pyc" -exec rm -rf {} \;
+	@find . -name "__pycache__" -delete
+
+clean_migrations:
+	find . -path '*/migrations/*.py' -not -name '__init__.py' -delete
+	find . -path '*/migrations/*.pyc' -delete
+
+up:
+	docker compose --env-file .env -f bootstrap/docker-compose.dev.yml up --build -d
+
+down:
+	docker compose --env-file .env -f bootstrap/docker-compose.dev.yml down
+
+restart:
+	docker compose --env-file .env -f bootstrap/docker-compose.dev.yml restart $(ARG)
+
+logs:
+	docker compose --env-file .env -f bootstrap/docker-compose.dev.yml logs -f $(ARG)
+
+shell:
+	docker compose --env-file .env -f bootstrap/docker-compose.dev.yml exec $(ARG) bash
+
+manage:
+	docker compose --env-file .env -f bootstrap/docker-compose.dev.yml exec $(SERVICE) python manage.py $(ARG)
+
+migrate:
+	docker compose --env-file .env -f bootstrap/docker-compose.dev.yml exec $(SERVICE) python manage.py migrate $(ARG)
+
+makemigrations:
+	docker compose --env-file .env -f bootstrap/docker-compose.dev.yml exec $(SERVICE) python manage.py makemigrations
+
+createsuperuser:
+	docker compose --env-file .env -f bootstrap/docker-compose.dev.yml exec $(SERVICE) python manage.py createsuperuser
+check:
+	-uv run ruff check .
+	-uv run ruff format --check .
+
+lint:
+	-uv run ruff check . --fix
+	-uv run ruff format .
+
+test:
+	docker compose --env-file .env -f bootstrap/docker-compose.dev.yml exec -T $(SERVICE) python manage.py test $(ARG) --parallel --keepdb
+
+test_reset:
+	docker compose --env-file .env -f bootstrap/docker-compose.dev.yml exec -T $(SERVICE) python manage.py test $(ARG) --parallel
+
+update_dependencies:
+	docker compose --env-file .env -f bootstrap/docker-compose.dev.yml down
+	docker compose --env-file .env -f bootstrap/docker-compose.dev.yml up -d --build

@@ -1,92 +1,58 @@
 services:
-  db:
-    image: postgres:17-alpine
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5433:5432"
-    volumes:
-      - dbdata:/var/lib/postgresql/data
-    networks:
-      - cloud
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  broker:
-    image: "rabbitmq:alpine"
-    restart: always
-    networks:
-      - cloud
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
-      interval: 5s
-      timeout: 10s
-      retries: 5
-
-  result:
-    image: "redis:alpine"
-    restart: always
-    networks:
-      - cloud
-
   app:
     build:
-      dockerfile: Dockerfile
-      context: .
+      dockerfile: bootstrap/Dockerfile.dev
+      context: ..
+    working_dir: /app/cloud
+    container_name: app
     restart: always
-    command: >
-      sh -c "
-            python manage.py makemigrations &&
-            python manage.py migrate --no-input && 
-            python manage.py runserver 0.0.0.0:8082"
-    # gunicorn --bind 0.0.0.0:8082 cloud.wsgi:application
-    # python manage.py runserver_plus 0.0.0.0:8082 --cert-file certs/cert.pem --key-file certs/key.pem
-
+    command:
+      - sh
+      - -c
+      - >
+        python manage.py makemigrations --no-input &&
+        python manage.py migrate --no-input &&
+        gunicorn cloud.wsgi:application --bind 0.0.0.0:8081
+        --access-logfile - --error-logfile - --capture-output
+        --log-level info --workers 2 --timeout 120 --reload
     ports:
-      - "8082:8082"
+      - "80:8081"
     depends_on:
       db:
         condition: service_healthy
-      broker:
-        condition: service_healthy
-      result:
+      redis:
         condition: service_started
     environment:
       DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE}
       SECRET_KEY: ${SECRET_KEY}
+      BASE_DOMAIN: ${BASE_DOMAIN}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS}
+      CORS_ALLOWED_ORIGIN_REGEXES: ${CORS_ALLOWED_ORIGIN_REGEXES}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      DEFENDER_REDIS_URL: ${DEFENDER_REDIS_URL}
-      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
       REDIS_URL: ${REDIS_URL}
-      PORT: 8082
+      PORT: 8081
+      PYTHONPATH: /app/cloud
     networks:
       - cloud
     volumes:
-      - .:/app/backend
-      - /app/.venv
+      - uv-cache:/root/.cache/uv
+      - ..:/app/cloud
     
-
   celery:
     build:
-      dockerfile: Dockerfile
-      context: .
+      dockerfile: bootstrap/Dockerfile.dev
+      context: ..
+    working_dir: /app/cloud
     restart: always
+    container_name: celery
     command: celery --app=cloud.celery_app worker --loglevel=info
     depends_on:
       db:
-        condition: service_started
-      broker:
         condition: service_healthy
-      result:
+      redis:
         condition: service_started
     environment:
       DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE}
@@ -95,25 +61,14 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
       REDIS_URL: ${REDIS_URL}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+      PYTHONPATH: /app/cloud
     networks:
       - cloud
     volumes:
-      - .:/app/backend
-      - /app/.venv
-    
-  nginx:
-    image: nginx:latest
-    restart: always
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - app
-    networks:
-      - cloud
+      - ..:/app/cloud
+      - uv-cache:/root/.cache/uv
 
   # celery_beat:
   #   build:
@@ -141,11 +96,51 @@ services:
   #     REDIS_URL: ${REDIS_URL}
   #   networks:
   #     - cloud
+  
+  db:
+    image: postgres:16-alpine
+    restart: always
+    container_name: db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cloud
+
+  redis:
+    image: "redis:alpine"
+    restart: always
+    container_name: redis
+    networks:
+      - cloud
+
+  broker:
+    image: "rabbitmq:alpine"
+    restart: always
+    container_name: broker
+    networks:
+      - cloud
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
 
 volumes:
   dbdata:
     name: cloud_dbdata
-
+  uv-cache:
+    name: cloud_uv-cache
 networks:
   cloud:
     driver: bridge

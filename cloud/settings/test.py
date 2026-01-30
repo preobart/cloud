@@ -1,3 +1,5 @@
+import os
+
 from .base import *
 
 
@@ -5,14 +7,13 @@ SECRET_KEY = "test"  # nosec
 DEBUG = True
 ALLOWED_HOSTS = ["localhost"]
 
-STATIC_ROOT = base_dir_join("staticfiles")
 STATIC_URL = "/static/"
+STATIC_ROOT = base_dir_join("static")
 
-MEDIA_ROOT = base_dir_join("mediafiles/")
 MEDIA_URL = "/media/"
-
-CONTENT_DIR = base_dir_join("mediafiles/content")
-PREVIEWS_DIR = base_dir_join("mediafiles/previews")
+MEDIA_ROOT = base_dir_join("media")
+CONTENT_DIR = base_dir_join("media", "content")
+PREVIEWS_DIR = base_dir_join("media", "previews")
 os.makedirs(CONTENT_DIR, exist_ok=True)
 os.makedirs(PREVIEWS_DIR, exist_ok=True)
 

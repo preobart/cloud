@@ -222,6 +222,7 @@ X_FRAME_OPTIONS = "DENY"
 
 # File upload settings
 MAX_FILE_UPLOAD_MB = 50
+QUOTA_STORAGE_BYTES_PER_USER = 100 * 1024 * 1024
 ALLOWED_FILE_MIME_TYPES = [
     "image/jpeg",
     "image/png",
