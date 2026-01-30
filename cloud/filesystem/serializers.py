@@ -1,4 +1,4 @@
-﻿from rest_framework import serializers
+from rest_framework import serializers
 
 from .models import File, Folder, SharedLink
 
@@ -8,13 +8,21 @@ class FileSerializer(serializers.ModelSerializer):
     preview_url = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
     file = serializers.FileField(write_only=True, required=False)
-    
+    folder = serializers.PrimaryKeyRelatedField(
+        queryset=Folder.objects.all(), required=False, allow_null=True
+    )
+
     class Meta:
         model = File
         fields = [
             "id", "name", "size", "mime_type", "uploaded_at", "folder",
             "preview_url", "full_url", "download_url", "file"
         ]
+        extra_kwargs = {
+            "size": {"read_only": True},
+            "mime_type": {"read_only": True},
+            "uploaded_at": {"read_only": True},
+        }
 
     def build_url(self, request, path):
         return request.build_absolute_uri(path) if request else path

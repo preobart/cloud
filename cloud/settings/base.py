@@ -128,15 +128,7 @@ REST_FRAMEWORK = {
 
 # Swagger settings
 SWAGGER_SETTINGS = {
-    "SECURITY_DEFINITIONS": {
-        "Bearer": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header",
-            "description": "JWT Authorization header using the Bearer scheme. Example: 'Bearer <token>'",
-        }
-    },
-    "USE_SESSION_AUTH": False,
+    "USE_SESSION_AUTH": True,
 }
 
 # SSO via Cookies
@@ -168,7 +160,7 @@ SESSION_CACHE_ALIAS = "default"
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": env("REDIS_URL", "redis://result:6379/0"),
+        "LOCATION": env("REDIS_URL", "redis://redis:6379/0"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },

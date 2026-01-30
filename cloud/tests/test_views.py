@@ -41,7 +41,7 @@ class FileViewSetTests(TestCase):
         url = reverse("file-list")
         data = {
             "file": SimpleUploadedFile("hello.txt", b"Hello World", content_type="text/plain"),
-            "folder_id": self.folder.id,
+            "folder": self.folder.id,
         }
         response = self.client.post(url, data, format="multipart")
         self.assertEqual(response.status_code, 201)
@@ -49,7 +49,7 @@ class FileViewSetTests(TestCase):
 
     def test_move_file(self):
         url = reverse("file-move", args=[self.file.id])
-        response = self.client.post(url, {"folder_id": self.folder.id})
+        response = self.client.post(url, {"folder": self.folder.id})
         self.assertEqual(response.status_code, 200)
         self.file.refresh_from_db()
         self.assertEqual(self.file.folder_id, self.folder.id)
@@ -60,7 +60,7 @@ class FileViewSetTests(TestCase):
         f2 = SimpleUploadedFile("file2.txt", b"file2", content_type="text/plain")
         response = self.client.post(
             url,
-            {"files": [f1, f2], "folder_id": self.folder.id},
+            {"files": [f1, f2], "folder": self.folder.id},
             format="multipart",
         )
         self.assertEqual(response.status_code, 201)
@@ -105,23 +105,23 @@ class FileViewSetTests(TestCase):
         self.assertIn("X-Accel-Redirect", response)
         self.assertEqual(response["Content-Type"], "image/jpeg")
 
-    def test_create_missing_file_or_folder_id(self):
+    def test_create_missing_file(self):
         url = reverse("file-list")
-        response = self.client.post(url, {"folder_id": self.folder.id}, format="multipart")
+        response = self.client.post(url, {"folder": self.folder.id}, format="multipart")
         self.assertEqual(response.status_code, 400)
         response = self.client.post(
             url,
             {"file": SimpleUploadedFile("x.txt", b"x", content_type="text/plain")},
             format="multipart",
         )
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 201)
 
     @override_settings(QUOTA_STORAGE_BYTES_PER_USER=5)
     def test_create_quota_exceeded(self):
         url = reverse("file-list")
         data = {
             "file": SimpleUploadedFile("big.txt", b"x" * 10, content_type="text/plain"),
-            "folder_id": self.folder.id,
+            "folder": self.folder.id,
         }
         response = self.client.post(url, data, format="multipart")
         self.assertEqual(response.status_code, 403)
@@ -131,7 +131,7 @@ class FileViewSetTests(TestCase):
     def test_bulk_upload_quota_exceeded(self):
         url = reverse("file-bulk-upload")
         f1 = SimpleUploadedFile("f1.txt", b"x" * 10, content_type="text/plain")
-        response = self.client.post(url, {"files": [f1], "folder_id": self.folder.id}, format="multipart")
+        response = self.client.post(url, {"files": [f1], "folder": self.folder.id}, format="multipart")
         self.assertEqual(response.status_code, 403)
         self.assertIn("error", response.data)
 

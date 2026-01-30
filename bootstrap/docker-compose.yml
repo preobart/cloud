@@ -30,8 +30,10 @@ services:
     image: {{ env.IMAGE }}
     restart: always
     container_name: app
-    ports:
-      - "80:8081"
+    expose:
+      - "8081"
+    volumes:
+      - media_data:/app/cloud/media
     command:
       - sh
       - -c
@@ -60,9 +62,25 @@ services:
     networks:
       - cloud
 
+  nginx:
+    image: nginx:alpine
+    restart: always
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ../nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - media_data:/app/cloud/media:ro
+    depends_on:
+      - app
+    networks:
+      - cloud
+
 volumes:
   dbdata:
     name: cloud_dbdata
+  media_data:
+    name: cloud_media
 
 networks:
   cloud:

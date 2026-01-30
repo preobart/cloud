@@ -1,4 +1,7 @@
+import atexit
 import os
+import shutil
+import tempfile
 
 from .base import *
 
@@ -10,10 +13,12 @@ ALLOWED_HOSTS = ["localhost"]
 STATIC_URL = "/static/"
 STATIC_ROOT = base_dir_join("static")
 
+_test_media_root = tempfile.mkdtemp()
+atexit.register(shutil.rmtree, _test_media_root, ignore_errors=True)
 MEDIA_URL = "/media/"
-MEDIA_ROOT = base_dir_join("media")
-CONTENT_DIR = base_dir_join("media", "content")
-PREVIEWS_DIR = base_dir_join("media", "previews")
+MEDIA_ROOT = _test_media_root
+CONTENT_DIR = os.path.join(_test_media_root, "content")
+PREVIEWS_DIR = os.path.join(_test_media_root, "previews")
 os.makedirs(CONTENT_DIR, exist_ok=True)
 os.makedirs(PREVIEWS_DIR, exist_ok=True)
 

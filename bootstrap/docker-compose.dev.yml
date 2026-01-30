@@ -15,8 +15,8 @@ services:
         gunicorn cloud.wsgi:application --bind 0.0.0.0:8081
         --access-logfile - --error-logfile - --capture-output
         --log-level info --workers 2 --timeout 120 --reload
-    ports:
-      - "80:8081"
+    expose:
+      - "8081"
     depends_on:
       db:
         condition: service_healthy
@@ -135,6 +135,20 @@ services:
       interval: 5s
       timeout: 10s
       retries: 5
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ../nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ..:/app/cloud:ro
+    depends_on:
+      - app
+    networks:
+      - cloud
 
 volumes:
   dbdata:

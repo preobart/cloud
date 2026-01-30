@@ -1,4 +1,3 @@
-
 from .base import *
 
 
@@ -9,11 +8,10 @@ ALLOWED_HOSTS = ["*"]
 SECRET_KEY = "secret"  # noqa: S105
 
 STATIC_URL = "/static/"
-STATIC_ROOT = base_dir_join("static")
+STATIC_ROOT = base_dir_join("staticfiles")
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = base_dir_join("media")
-
 
 SESSION_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SAMESITE = "None"

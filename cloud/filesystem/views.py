@@ -40,19 +40,20 @@ class FileViewSet(viewsets.ModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         uploaded_file = request.FILES.get('file')
-        folder_id = request.data.get('folder_id')
+        folder = request.data.get('folder')
+        name = request.data.get('name')
 
-        if not uploaded_file or not folder_id:
+        if not uploaded_file:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         used = File.objects.filter(owner=request.user, deleted_at__isnull=True).aggregate(s=Sum('size'))['s'] or 0
         if used + uploaded_file.size > settings.QUOTA_STORAGE_BYTES_PER_USER:
             return Response({'error': 'Storage quota exceeded'}, status=status.HTTP_403_FORBIDDEN)
 
-        folder = Folder.objects.filter(id=folder_id, owner=request.user).first()
+        folder = Folder.objects.filter(id=folder, owner=request.user).first() if folder else None
         file_obj = File(
             owner=request.user,
-            name=uploaded_file.name,
+            name=name or uploaded_file.name,
             size=uploaded_file.size,
             mime_type=uploaded_file.content_type,
             folder=folder
@@ -70,6 +71,8 @@ class FileViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         file_obj = self.get_object()
+        if not file_obj.file or not file_obj.file.name:
+            return Response({'error': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
         internal_path = '/protected-media/' + file_obj.file.name.lstrip('/')
         response = HttpResponse()
         response['Content-Type'] = file_obj.mime_type or 'application/octet-stream'
@@ -80,9 +83,8 @@ class FileViewSet(viewsets.ModelViewSet):
     @action(detail=True)
     def preview(self, request, pk=None):
         file_obj = self.get_object()
-        if not file_obj.preview_image:
+        if not file_obj.preview_image or not file_obj.preview_image.name:
             return Response({'error': 'Preview not available'}, status=status.HTTP_404_NOT_FOUND)
-        
         internal_path = '/protected-media/' + file_obj.preview_image.name.lstrip('/')
         response = HttpResponse()
         response['Content-Type'] = 'image/jpeg'
@@ -93,12 +95,14 @@ class FileViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def move(self, request, pk=None):
         file_obj = self.get_object()
-        folder_id = request.data.get('folder_id')
-
-        if not folder_id:
-            return Response({'message': 'folder_id is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        file_obj.folder_id = folder_id
+        folder = request.data.get('folder')
+        if folder is not None:
+            folder_obj = Folder.objects.filter(id=folder, owner=request.user).first()
+            if folder_obj is None:
+                return Response({'message': 'Folder not found'}, status=status.HTTP_400_BAD_REQUEST)
+            file_obj.folder_id = folder_obj.id
+        else:
+            file_obj.folder_id = None
         file_obj.save()
         return Response({'message': f'File {file_obj.name} moved'})
     
@@ -112,12 +116,12 @@ class FileViewSet(viewsets.ModelViewSet):
     def bulk_upload(self, request):
         files = request.FILES.getlist('files')
         uploaded_files = []
-
-        folder_id = request.data.get('folder_id')
-        folder = None
-        if folder_id:
+        name = request.data.get('name')
+        folder = request.data.get('folder')
+        folder_obj = None
+        if folder is not None:
             try:
-                folder = Folder.objects.get(pk=folder_id, owner=request.user)
+                folder_obj = Folder.objects.get(pk=folder, owner=request.user)
             except Folder.DoesNotExist:
                 return Response({'error': 'Folder not found'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -129,11 +133,11 @@ class FileViewSet(viewsets.ModelViewSet):
         for uploaded_file in files:
             file_obj = File.objects.create(
                 owner=request.user,
-                name=uploaded_file.name,
+                name=name or uploaded_file.name,
                 size=uploaded_file.size,
                 mime_type=uploaded_file.content_type,
                 file=uploaded_file,
-                folder=folder
+                folder=folder_obj
             )
             uploaded_files.append(file_obj)
             generate_preview.delay(file_obj.id)
@@ -227,8 +231,9 @@ class PublicSharedFileView(APIView):
         
         file_obj = shared_link.file
         shared_link.increment_download()
-
-        internal_path = '/protected-media/' + file_obj.file.name.lstrip('/')  
+        if not file_obj.file or not file_obj.file.name:
+            return Response({'error': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
+        internal_path = '/protected-media/' + file_obj.file.name.lstrip('/')
         response = HttpResponse()
         response['Content-Type'] = file_obj.mime_type or 'application/octet-stream'
         response['Content-Disposition'] = f'attachment; filename="{file_obj.name}"'
